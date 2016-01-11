@@ -252,7 +252,7 @@ public class DcSwitchStateMachine extends StateMachine {
                                 break;
                             }
                         }
-                        loge("EVENT_DATA_ALLOWED failed, " + ar.exception);
+                        //loge("EVENT_DATA_ALLOWED failed, " + ar.exception);
                         transitionTo(mIdleState);
                     }
                     retVal = HANDLED;
