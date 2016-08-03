@@ -27,7 +27,7 @@ import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.PhoneBase;
 import com.android.internal.telephony.PhoneProxy;
 import com.android.internal.telephony.dataconnection.DcSwitchAsyncChannel.RequestInfo;
-
+import android.os.SystemProperties;
 import android.os.AsyncResult;
 import android.os.Message;
 import android.telephony.Rlog;
@@ -205,8 +205,12 @@ public class DcSwitchStateMachine extends StateMachine {
 
         private void doEnter() {
             final PhoneBase pb = (PhoneBase)((PhoneProxy)mPhone).getActivePhone();
+            String sim_state ;
+            sim_state = SystemProperties.get("gsm.sim.state");
+            if(sim_state.equals("READY")){
             pb.mCi.setDataAllowed(true, obtainMessage(EVENT_DATA_ALLOWED,
                     ++mCurrentAllowedSequence, 0));
+            }
             // if we're on a carrier that unattaches us if we're idle for too long
             // (on wifi) and they won't re-attach until we poke them.  Poke them!
             // essentially react as Attached does here in Attaching.
