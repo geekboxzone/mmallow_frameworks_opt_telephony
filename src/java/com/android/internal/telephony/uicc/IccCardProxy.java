@@ -505,8 +505,7 @@ public class IccCardProxy extends Handler implements IccCard {
             }
 
             Intent intent = new Intent(ACTION_INTERNAL_SIM_STATE_CHANGED);
-            intent.addFlags(Intent.FLAG_RECEIVER_REPLACE_PENDING
-                    | Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
+            intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
             intent.putExtra(PhoneConstants.PHONE_NAME_KEY, "Phone");
             intent.putExtra(IccCardConstants.INTENT_KEY_ICC_STATE, value);
             intent.putExtra(IccCardConstants.INTENT_KEY_LOCKED_REASON, reason);
@@ -532,7 +531,8 @@ public class IccCardProxy extends Handler implements IccCard {
             mTelephonyManager.setSimStateForPhone(mPhoneId, getState().toString());
 
             // For locked states, we should be sending internal broadcast.
-            if (IccCardConstants.INTENT_VALUE_ICC_LOCKED.equals(getIccStateIntentString(mExternalState))) {
+            if (IccCardConstants.INTENT_VALUE_ICC_LOCKED.equals(getIccStateIntentString(mExternalState))
+                || IccCardConstants.INTENT_VALUE_ICC_READY.equals(getIccStateIntentString(mExternalState))) {
                 broadcastInternalIccStateChangedIntent(getIccStateIntentString(mExternalState),
                         getIccStateReason(mExternalState));
             } else {

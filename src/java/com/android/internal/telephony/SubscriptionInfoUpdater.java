@@ -68,6 +68,7 @@ public class SubscriptionInfoUpdater extends Handler {
     private static final int EVENT_SIM_LOCKED = 5;
     private static final int EVENT_SIM_IO_ERROR = 6;
     private static final int EVENT_SIM_UNKNOWN = 7;
+    private static final int EVENT_SIM_READY = 8;
 
     private static final String ICCID_STRING_FOR_NO_SIM = "";
     /**
@@ -203,6 +204,8 @@ public class SubscriptionInfoUpdater extends Handler {
                     sendMessage(obtainMessage(EVENT_SIM_LOCKED, slotId, -1, reason));
                 } else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(simStatus)) {
                     sendMessage(obtainMessage(EVENT_SIM_LOADED, slotId, -1));
+                } else if (IccCardConstants.INTENT_VALUE_ICC_READY.equals(simStatus)) {
+                    sendMessage(obtainMessage(EVENT_SIM_READY, slotId, -1));
                 } else {
                     logd("Ignoring simStatus: " + simStatus);
                 }
@@ -252,6 +255,7 @@ public class SubscriptionInfoUpdater extends Handler {
                 AsyncResult ar = (AsyncResult)msg.obj;
                 QueryIccIdUserObj uObj = (QueryIccIdUserObj) ar.userObj;
                 int slotId = uObj.slotId;
+                String state = uObj.state;
                 logd("handleMessage : <EVENT_SIM_LOCKED_QUERY_ICCID_DONE> SIM" + (slotId + 1));
                 if (ar.exception == null) {
                     if (ar.result != null) {
@@ -269,8 +273,9 @@ public class SubscriptionInfoUpdater extends Handler {
                 if (isAllIccIdQueryDone()) {
                     updateSubscriptionInfoByIccId();
                 }
-                broadcastSimStateChanged(slotId, IccCardConstants.INTENT_VALUE_ICC_LOCKED,
-                                         uObj.reason);
+                //broadcastSimStateChanged(slotId, IccCardConstants.INTENT_VALUE_ICC_LOCKED,
+                                         //uObj.reason);
+                broadcastSimStateChanged(slotId, state, uObj.reason);
                 if (!ICCID_STRING_FOR_NO_SIM.equals(mIccId[slotId])) {
                     updateCarrierServices(slotId, IccCardConstants.INTENT_VALUE_ICC_LOCKED);
                 }
@@ -300,7 +305,10 @@ public class SubscriptionInfoUpdater extends Handler {
                 break;
 
             case EVENT_SIM_LOCKED:
-                handleSimLocked(msg.arg1, (String) msg.obj);
+            case EVENT_SIM_READY:
+                String state = (msg.what == EVENT_SIM_LOCKED) ?
+                    IccCardConstants.INTENT_VALUE_ICC_LOCKED:IccCardConstants.INTENT_VALUE_ICC_READY;
+                handleSimReadyOrLocked(msg.arg1, (String) msg.obj, state);
                 break;
 
             case EVENT_SIM_UNKNOWN:
@@ -318,15 +326,17 @@ public class SubscriptionInfoUpdater extends Handler {
 
     private static class QueryIccIdUserObj {
         public String reason;
+        public String state;
         public int slotId;
 
-        QueryIccIdUserObj(String reason, int slotId) {
+        QueryIccIdUserObj(String state, String reason, int slotId) {
+            this.state = state;
             this.reason = reason;
             this.slotId = slotId;
         }
     };
 
-    private void handleSimLocked(int slotId, String reason) {
+    private void handleSimReadyOrLocked(int slotId, String reason, String state) {
         if (mIccId[slotId] != null && mIccId[slotId].equals(ICCID_STRING_FOR_NO_SIM)) {
             logd("SIM" + (slotId + 1) + " hot plug in");
             mIccId[slotId] = null;
@@ -342,11 +352,11 @@ public class SubscriptionInfoUpdater extends Handler {
                 logd("Querying IccId");
                 fileHandler.loadEFTransparent(IccConstants.EF_ICCID,
                         obtainMessage(EVENT_SIM_LOCKED_QUERY_ICCID_DONE,
-                                new QueryIccIdUserObj(reason, slotId)));
+                                new QueryIccIdUserObj(state, reason, slotId)));
             } else {
                 logd("NOT Querying IccId its already set sIccid[" + slotId + "]=" + iccId);
                 updateCarrierServices(slotId, IccCardConstants.INTENT_VALUE_ICC_LOCKED);
-                broadcastSimStateChanged(slotId, IccCardConstants.INTENT_VALUE_ICC_LOCKED, reason);
+                broadcastSimStateChanged(slotId, state, reason);
             }
         } else {
             logd("sFh[" + slotId + "] is null, ignore");
